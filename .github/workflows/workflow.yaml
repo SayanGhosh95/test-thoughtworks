@@ -1,0 +1,44 @@
+name: AWS example workflow
+on:
+  workflow_dispatch:
+    inputs:
+      directory:
+        description: 'Directory to work against'
+        required: true
+        type: choice
+        options:
+        - backend-support
+        - base
+        - news
+env:
+  INPUT_DIRECTORY: ${{ inputs.directory }}
+permissions:
+  id-token: write
+  contents: read   
+jobs:
+  AWS_deployment:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ inputs.directory }}
+    steps:
+      - name: Git clone the repository
+        uses: actions/checkout@v4
+      - name: configure aws credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          role-to-assume: arn:aws:iam::090304612899:role/github-oidc-role
+          role-session-name: samplerolesession
+          aws-region: "us-east-1"
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+      - name: Terraform Init
+        id: init
+        run: terraform init
+      - name: Terraform Plan
+        id: plan
+        run: terraform plan -no-color
+        continue-on-error: true
+      - name: Terraform Apply
+        id: aplly
+        run: terraform apply --auto-approve
